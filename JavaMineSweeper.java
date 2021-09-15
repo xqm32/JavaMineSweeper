@@ -1,4 +1,7 @@
+import java.util.Map;
+import static java.util.Map.entry;
 import java.util.Random;
+import java.util.Scanner;
 
 public class JavaMineSweeper {
     public static class MineGrid {
@@ -98,8 +101,53 @@ public class JavaMineSweeper {
         }
     }
 
+    // 通过指令类完成输入输出
+    public static class Instruction {
+        enum Type {
+            NONE, CLICK, COORDINATE, MARK, RESTART, ERROR
+        }
+
+        public Type type;
+        public int coordinate;
+        public static final Map<String, Type> instructions = Map.ofEntries(entry("CLICK", Type.CLICK),
+                entry("RESTART", Type.RESTART));
+
+        public Instruction() {
+            type = Type.NONE;
+        }
+
+        public Instruction.Type read(Scanner scan) {
+            String instruction;
+
+            if (scan.hasNextInt()) {
+                type = Type.COORDINATE;
+                coordinate = scan.nextInt();
+                return Type.COORDINATE;
+            } else if (scan.hasNext()) {
+                instruction = scan.next();
+                if (instructions.containsKey(instruction)) {
+                    type = instructions.get(instruction);
+                }
+                return type;
+            } else
+                return Type.ERROR;
+        }
+
+        public Instruction.Type read() {
+            Scanner scan = new Scanner(System.in);
+            // 这里不再重写 read 函数了
+            Instruction.Type ret = read(scan);
+            scan.close();
+            return ret;
+        }
+
+    }
+
     public static void main(String[] args) {
         MineGrid mineGrid = new MineGrid(10, 10, 10);
         System.out.println(mineGrid.toString());
+
+        Instruction ins = new Instruction();
+        ins.read();
     }
 }
