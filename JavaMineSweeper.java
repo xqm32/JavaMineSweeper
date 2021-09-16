@@ -198,11 +198,15 @@ class Instruction {
 }
 
 public class JavaMineSweeper {
-    public static void main(String[] args) {
-        MineGrid mineGrid = new MineGrid(10, 10, 10);
-        System.out.println(mineGrid.toString());
+    static MineGrid mineGrid;
 
-        Instruction ins = new Instruction();
-        ins.read();
+    static int game() {
+        System.out.print(mineGrid.toString());
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        mineGrid = new MineGrid(10, 10, 10);
+        game();
     }
 }
