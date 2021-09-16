@@ -36,12 +36,28 @@ public class JavaMineSweeper {
             for (int i = 0; i < length; ++i) {
                 for (int j = 0; j < width; ++j) {
                     gridMine[i][j] = Mine.BLANK;
-                    gridFlag[i][j] = Flag.INVISABLE;
+                    gridFlag[i][j] = Flag.VISABLE;
                     gridNumber[i][j] = 0;
                 }
             }
 
             initGrid();
+        }
+
+        private int setNumber(int x, int y) {
+            int startX = x - 1 < 0 ? x : x - 1;
+            int startY = y - 1 < 0 ? y : y - 1;
+            int endX = x + 1 < length ? x + 1 : x;
+            int endY = y + 1 < width ? y + 1 : y;
+            for (int i = startX; i <= endX; ++i) {
+                for (int j = startY; j <= endY; ++j) {
+                    // 由于 gridNumber 和 gridMine 是分开的，这里不需要跳过 雷 格
+                    // if (i == x && j == y)
+                    // continue;
+                    gridNumber[i][j] += 1;
+                }
+            }
+            return 0;
         }
 
         private int initGrid() {
@@ -61,22 +77,27 @@ public class JavaMineSweeper {
                     continue;
                 }
 
-                // TODO 添加 gridNumber 的数字
+                setNumber(setMineX, setMineY);
             }
 
             return 0;
         }
 
         private char toChar(Mine mine, Flag flag, int number) {
-            if (flag == Flag.VISABLE)
-                return (char) (number + '0');
-            else {
+            if (flag == Flag.VISABLE) {
+                if (mine == Mine.MINE)
+                    return 'X';
+                else if (number == 0)
+                    return ' ';
+                else
+                    return (char) (number + '0');
+            } else {
                 // TODO 完善关于 flag 的字符转化
                 switch (flag) {
                     case INVISABLE:
                         return ' ';
                     default:
-                        return 'O';
+                        return ' ';
                 }
             }
         }
@@ -147,7 +168,7 @@ public class JavaMineSweeper {
         MineGrid mineGrid = new MineGrid(10, 10, 10);
         System.out.println(mineGrid.toString());
 
-        Instruction ins = new Instruction();
-        ins.read();
+        // Instruction ins = new Instruction();
+        // ins.read();
     }
 }
