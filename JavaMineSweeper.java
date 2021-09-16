@@ -94,8 +94,6 @@ class MineGrid {
         if (flag == Flag.VISABLE) {
             if (mine == Mine.MINE)
                 return '*';
-            else if (number == 0)
-                return ' ';
             else
                 return (char) (number + '0');
         } else {
