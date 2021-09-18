@@ -18,6 +18,10 @@ class MineGrid {
     private int length;
     private int width;
     private int mines;
+
+    // 可见的格子数量，用于判断游戏是否胜利
+    private int visableGrids = 0;
+
     private boolean inited;
 
     private Mine[][] gridMine;
@@ -171,6 +175,15 @@ class MineGrid {
         return true;
     }
 
+    // 若可见的格子数量与雷数量恰为总格数，则判定胜利
+    public boolean isWin() {
+        if (visableGrids + mines == length * width) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     private void searchSafe(int x, int y) {
         /*
          ! 注意：此处用了 setNumber() 方法中的一个特性，也就是有 雷 处的 gridNumber 不为零
@@ -186,6 +199,7 @@ class MineGrid {
             return;
 
         gridFlag[x][y] = Flag.VISABLE;
+        visableGrids += 1;
 
         // 此处与上一行顺序不可以调换，因为需要显示数字
         if (gridNumber[x][y] != 0)
@@ -288,6 +302,10 @@ public class JavaMineSweeper {
                     return 1;
                 default:
                     System.out.println("ERROR");
+            }
+            if (mineGrid.isWin()) {
+                System.out.println("You Win");
+                return 1;
             }
             System.out.print(mineGrid.toString());
         }
