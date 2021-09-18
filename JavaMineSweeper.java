@@ -347,7 +347,7 @@ class Instruction {
 public class JavaMineSweeper {
     static MineGrid mineGrid;
 
-    static void game(Scanner scan) {
+    static void runTheGame(Scanner scan) {
         Instruction ins = new Instruction();
         Instruction.Type insType;
         int[] coordinate;
@@ -390,7 +390,7 @@ public class JavaMineSweeper {
     public static void main(String[] args) {
         mineGrid = new MineGrid(10, 10, 10);
         Scanner scan = new Scanner(System.in);
-        game(scan);
+        runTheGame(scan);
         mineGrid.setAllGridVisable();
         System.out.print(mineGrid.toString());
         scan.close();
