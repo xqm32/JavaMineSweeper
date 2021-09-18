@@ -164,6 +164,7 @@ class MineGrid {
             } while (gridMine[x][y] == Mine.MINE);
             inited = true;
         }
+        // 非初始化，且点击的格子含雷
         if (gridMine[x][y] == Mine.MINE)
             return false;
         searchSafe(x, y);
@@ -209,7 +210,7 @@ class Instruction {
     }
 
     private Type type;
-    private int coordinate;
+    private int[] coordinate = new int[2];
     // 这是一个常 Map，包含了字符串对 Instruction.Type 的映射
     private static final Map<String, Type> instructions = Map.ofEntries(entry("CLICK", Type.CLICK),
             entry("RESTART", Type.RESTART), entry("MARK", Type.MARK));
@@ -218,47 +219,84 @@ class Instruction {
         type = Type.NONE;
     }
 
-    public Instruction.Type read(Scanner scan) {
-        String instruction;
+    // 不应当有默认 System.out.in 的打开再读取
+    public void read(Scanner scan) {
+        String[] instruction;
 
-        if (scan.hasNextInt()) {
-            type = Type.COORDINATE;
-            coordinate = scan.nextInt();
-            return Type.COORDINATE;
-        } else if (scan.hasNext()) {
-            instruction = scan.next();
-            if (instructions.containsKey(instruction)) {
-                type = instructions.get(instruction);
+        if (scan.hasNextLine()) {
+            instruction = scan.nextLine().strip().split(" ");
+            String insKey = instruction[0];
+
+            if (instructions.containsKey(insKey)) {
+                type = instructions.get(insKey);
+                switch (type) {
+                    case CLICK:
+                        type = getClick(instruction);
+                        return;
+                    default:
+                        type = Type.ERROR;
+                        return;
+                }
             }
-            return type;
-        } else
+        } else {
+            type = Type.NONE;
+            return;
+        }
+    }
+
+    private Type getClick(String[] instruction) {
+        if (instruction.length < 3) {
             return Type.ERROR;
+        }
+        try {
+            coordinate[0] = Integer.parseInt(instruction[1]);
+            coordinate[1] = Integer.parseInt(instruction[2]);
+        } catch (NumberFormatException e) {
+            return Type.ERROR;
+        }
+        return Type.CLICK;
     }
 
-    public Instruction.Type read() {
-        Scanner scan = new Scanner(System.in);
-        // 这里不再重写 read 函数了
-        Instruction.Type ret = read(scan);
-        scan.close();
-        return ret;
-    }
-
-    public int getCoordinate() {
+    public int[] getCoordinate() {
         return coordinate;
+    }
+
+    public Type getType() {
+        return type;
     }
 }
 
 public class JavaMineSweeper {
     static MineGrid mineGrid;
 
-    static int game() {
-        mineGrid.clickGrid(5, 5);
-        System.out.print(mineGrid.toString());
-        return 0;
+    static int game(Scanner scan) {
+        Instruction ins = new Instruction();
+
+        while (true) {
+            ins.read(scan);
+            switch (ins.getType()) {
+                case CLICK:
+                    int[] coordinate = ins.getCoordinate();
+                    boolean isAlive = mineGrid.clickGrid(coordinate[1], coordinate[0]);
+
+                    if (!isAlive) {
+                        System.out.println("Game Over");
+                        return 1;
+                    }
+                    break;
+                case NONE:
+                    return 1;
+                default:
+                    System.out.println("ERROR");
+            }
+            System.out.print(mineGrid.toString());
+        }
     }
 
     public static void main(String[] args) {
-        mineGrid = new MineGrid(10, 10, 10);
-        game();
+        mineGrid = new MineGrid(10, 10, 5);
+        Scanner scan = new Scanner(System.in);
+        game(scan);
+        scan.close();
     }
 }
