@@ -51,7 +51,7 @@ class MineGrid {
         inited = false;
     }
 
-    // 对于有 雷 的格子使用，作用是将其周围的 gridNumber（附近雷数）增一
+    // 对于有雷的格子使用，作用是将其周围的 gridNumber（附近雷数）增一
     private int setNumber(int x, int y) {
         // 以下四行是检测越界的
         int startX = x - 1 < 0 ? x : x - 1;
@@ -62,7 +62,7 @@ class MineGrid {
             for (int j = startY; j <= endY; ++j) {
                 // ! 注意：这里的这个特性在 searchSafe() 方法中已经被用到，
                 // ! 请勿再进行更改
-                // 由于 gridNumber 和 gridMine 是分开的，这里不需要跳过 雷 格
+                // 由于 gridNumber 和 gridMine 是分开的，这里不需要跳过雷格
                 // if (i == x && j == y)
                 // continue;
                 gridNumber[i][j] += 1;
@@ -76,8 +76,8 @@ class MineGrid {
         Random rand = new Random();
 
         for (int i = 0; i < mines; ++i) {
-            // 随机生成置放 雷 的坐标，若已存在，则重新放置
-            // 此仅为置放 雷 的算法的一种，实际上可以使用 *洗牌算法* 置放 雷
+            // 随机生成置放雷的坐标，若已存在，则重新放置
+            // 此仅为置放雷的算法的一种，实际上可以使用 *洗牌算法* 置放雷
             setMineX = rand.nextInt(length);
             setMineY = rand.nextInt(width);
 
@@ -160,7 +160,7 @@ class MineGrid {
     }
 
     public boolean clickGrid(int x, int y) {
-        // 如果是第一次点击，不应是 雷
+        // 如果是第一次点击，不应是雷
         // 若是雷，则重新生成
         if (!inited) {
             do {
