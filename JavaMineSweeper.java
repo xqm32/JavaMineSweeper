@@ -243,6 +243,14 @@ class MineGrid {
     public void markGrid(int markX, int markY, String mark) {
         gridFlag[markX][markY] = toFlag(mark);
     }
+
+    public void setAllGridVisable() {
+        for (int i = 0; i < length; ++i) {
+            for (int j = 0; j < width; ++j) {
+                gridFlag[i][j] = Flag.VISABLE;
+            }
+        }
+    }
 }
 
 // TODO 写的不好，需要重构
@@ -251,7 +259,7 @@ class Instruction {
     // 实际上枚举类型是可以拥有更加丰富的内容的
     // 参考：https://docs.oracle.com/javase/tutorial/java/javaOO/enum.html
     public enum Type {
-        NO_COMMAND, INVALID_COMMAND, NUMBER_EXPECTED, MARK_EXPECTED, COORDINATE, CLICK, MARK, RESTART, QUIT
+        NO_COMMAND, INVALID_COMMAND, NUMBER_EXPECTED, MARK_EXPECTED, COORDINATE, CLICK, MARK, QUIT
     }
 
     private Type type;
@@ -260,7 +268,7 @@ class Instruction {
     private int[] coordinate = new int[2];
     // 这是一个常 Map，包含了字符串对 Instruction.Type 的映射
     private static final Map<String, Type> instructions = Map.ofEntries(entry("CLICK", Type.CLICK),
-            entry("MARK", Type.MARK), entry("RESTART", Type.RESTART), entry("QUIT", Type.QUIT));
+            entry("MARK", Type.MARK), entry("QUIT", Type.QUIT));
 
     public Instruction() {
         type = Type.NO_COMMAND;
@@ -285,6 +293,8 @@ class Instruction {
                     case MARK:
                         type = readCoordinate(instruction);
                         type = readMark(instruction);
+                        return;
+                    case QUIT:
                         return;
                     default:
                         type = Type.INVALID_COMMAND;
@@ -344,6 +354,7 @@ public class JavaMineSweeper {
 
         while (!mineGrid.isOver()) {
             System.out.print(mineGrid.toString());
+            System.out.print("Input Command: ");
 
             ins.read(scan);
             insType = ins.getType();
@@ -363,6 +374,9 @@ public class JavaMineSweeper {
                 markY = coordinate[1];
                 mark = ins.getMark();
                 mineGrid.markGrid(markX, markY, mark);
+            } else if (insType == Instruction.Type.QUIT) {
+                System.out.println("You Quit");
+                return;
             }
 
             if (mineGrid.isWin()) {
@@ -374,9 +388,11 @@ public class JavaMineSweeper {
     }
 
     public static void main(String[] args) {
-        mineGrid = new MineGrid(10, 10, 5);
+        mineGrid = new MineGrid(10, 10, 1);
         Scanner scan = new Scanner(System.in);
         game(scan);
+        mineGrid.setAllGridVisable();
+        System.out.print(mineGrid.toString());
         scan.close();
     }
 }
