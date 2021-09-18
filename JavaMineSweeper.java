@@ -388,7 +388,7 @@ public class JavaMineSweeper {
     }
 
     public static void main(String[] args) {
-        mineGrid = new MineGrid(10, 10, 1);
+        mineGrid = new MineGrid(10, 10, 10);
         Scanner scan = new Scanner(System.in);
         game(scan);
         mineGrid.setAllGridVisable();
