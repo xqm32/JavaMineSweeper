@@ -3,7 +3,15 @@ import static java.util.Map.entry;
 import java.util.Random;
 import java.util.Scanner;
 
+// TODO 需要优化：异常处理
 class MineGrid {
+    public static class InvalidFlag extends RuntimeException {
+        @Override
+        public String getMessage() {
+            return "Invalid Flag";
+        }
+    }
+
     // 用于 gridMine，标注 grid 是否有雷
     public enum Mine {
         BLANK, MINE
@@ -12,7 +20,7 @@ class MineGrid {
     // 用于 gridFlag，标注 grid 的备注
     // 这里我们设定若为可见时，则无法进行标记（也没有必要进行标记）
     public enum Flag {
-        INVISABLE, VISABLE, IS_MINE, IS_QUERY, IS_SAFE
+        INVALID, INVISABLE, VISABLE, IS_MINE, IS_QUERY, IS_SAFE
     }
 
     private int length;
@@ -23,10 +31,14 @@ class MineGrid {
     private int visableGrids = 0;
 
     private boolean inited;
+    private boolean gameOver;
 
     private Mine[][] gridMine;
     private Flag[][] gridFlag;
     private int[][] gridNumber;
+
+    private static final Map<String, Flag> flags = Map.ofEntries(entry("NOFLAG", Flag.INVISABLE),
+            entry("MINE", Flag.IS_MINE), entry("QUERY", Flag.IS_QUERY), entry("SAFE", Flag.IS_SAFE));
 
     public MineGrid(int startLength, int startWidth, int startMines) {
         length = startLength;
@@ -49,26 +61,7 @@ class MineGrid {
         }
 
         inited = false;
-    }
-
-    // 对于有雷的格子使用，作用是将其周围的 gridNumber（附近雷数）增一
-    private int setNumber(int x, int y) {
-        // 以下四行是检测越界的
-        int startX = x - 1 < 0 ? x : x - 1;
-        int startY = y - 1 < 0 ? y : y - 1;
-        int endX = x + 1 < length ? x + 1 : x;
-        int endY = y + 1 < width ? y + 1 : y;
-        for (int i = startX; i <= endX; ++i) {
-            for (int j = startY; j <= endY; ++j) {
-                // ! 注意：这里的这个特性在 searchSafe() 方法中已经被用到，
-                // ! 请勿再进行更改
-                // 由于 gridNumber 和 gridMine 是分开的，这里不需要跳过雷格
-                // if (i == x && j == y)
-                // continue;
-                gridNumber[i][j] += 1;
-            }
-        }
-        return 0;
+        gameOver = false;
     }
 
     private int initGrid() {
@@ -94,6 +87,55 @@ class MineGrid {
         return 0;
     }
 
+    // 对于有雷的格子使用，作用是将其周围的 gridNumber（附近雷数）增一
+    private int setNumber(int x, int y) {
+        // 以下四行是检测越界的
+        int startX = x - 1 < 0 ? x : x - 1;
+        int startY = y - 1 < 0 ? y : y - 1;
+        int endX = x + 1 < length ? x + 1 : x;
+        int endY = y + 1 < width ? y + 1 : y;
+        for (int i = startX; i <= endX; ++i) {
+            for (int j = startY; j <= endY; ++j) {
+                // ! 注意：这里的这个特性在 searchSafe() 方法中已经被用到，
+                // ! 请勿再进行更改
+                // 由于 gridNumber 和 gridMine 是分开的，这里不需要跳过雷格
+                // if (i == x && j == y)
+                // continue;
+                gridNumber[i][j] += 1;
+            }
+        }
+        return 0;
+    }
+
+    private void searchSafe(int x, int y) {
+        /*
+         ! 注意：此处用了 setNumber() 方法中的一个特性，也就是有 雷 处的 gridNumber 不为零
+         ! 但实际上，雷 的周围的 girdNumber 本就不为零，即使不利用此特性，理论上也不会出现问题
+         ! 但出于规范考虑，还是请勿修改 setNumber() 这一方法
+         */
+        // 越界检测
+        // 由于这里有越界检测了，此后不再进行越界检测
+        if (x < 0 || y < 0 || x >= length || y >= width)
+            return;
+        // 达到边界检测
+        if (gridFlag[x][y] == Flag.VISABLE)
+            return;
+
+        gridFlag[x][y] = Flag.VISABLE;
+        visableGrids += 1;
+
+        // 此处与上一行顺序不可以调换，因为需要显示数字
+        if (gridNumber[x][y] != 0)
+            return;
+
+        for (int i = x - 1; i <= x + 1; ++i) {
+            for (int j = y - 1; j <= y + 1; ++j) {
+                // 此处无需进行对原坐标的优化，因为此处将会跳过已经 Flag.VISABLE 的格子
+                searchSafe(i, j);
+            }
+        }
+    }
+
     private char toChar(Mine mine, Flag flag, int number) {
         if (flag == Flag.VISABLE) {
             if (mine == Mine.MINE)
@@ -115,6 +157,14 @@ class MineGrid {
                 default:
                     return ' ';
             }
+        }
+    }
+
+    private Flag toFlag(String mark) {
+        if (flags.containsKey(mark)) {
+            return flags.get(mark);
+        } else {
+            return Flag.INVALID;
         }
     }
 
@@ -159,7 +209,7 @@ class MineGrid {
         return ret.toString();
     }
 
-    public boolean clickGrid(int x, int y) {
+    public void clickGrid(int x, int y) {
         // 如果是第一次点击，不应是雷
         // 若是雷，则重新生成
         if (!inited) {
@@ -169,10 +219,12 @@ class MineGrid {
             inited = true;
         }
         // 非初始化，且点击的格子含雷
-        if (gridMine[x][y] == Mine.MINE)
-            return false;
+        if (gridMine[x][y] == Mine.MINE) {
+            gameOver = true;
+            return;
+        }
         searchSafe(x, y);
-        return true;
+        return;
     }
 
     // 若可见的格子数量与雷数量恰为总格数，则判定胜利
@@ -184,33 +236,12 @@ class MineGrid {
         }
     }
 
-    private void searchSafe(int x, int y) {
-        /*
-         ! 注意：此处用了 setNumber() 方法中的一个特性，也就是有 雷 处的 gridNumber 不为零
-         ! 但实际上，雷 的周围的 girdNumber 本就不为零，即使不利用此特性，理论上也不会出现问题
-         ! 但出于规范考虑，还是请勿修改 setNumber() 这一方法
-         */
-        // 越界检测
-        // 由于这里有越界检测了，此后不再进行越界检测
-        if (x < 0 || y < 0 || x >= length || y >= width)
-            return;
-        // 达到边界检测
-        if (gridFlag[x][y] == Flag.VISABLE)
-            return;
+    public boolean isOver() {
+        return gameOver;
+    }
 
-        gridFlag[x][y] = Flag.VISABLE;
-        visableGrids += 1;
-
-        // 此处与上一行顺序不可以调换，因为需要显示数字
-        if (gridNumber[x][y] != 0)
-            return;
-
-        for (int i = x - 1; i <= x + 1; ++i) {
-            for (int j = y - 1; j <= y + 1; ++j) {
-                // 此处无需进行对原坐标的优化，因为此处将会跳过已经 Flag.VISABLE 的格子
-                searchSafe(i, j);
-            }
-        }
+    public void markGrid(int markX, int markY, String mark) {
+        gridFlag[markX][markY] = toFlag(mark);
     }
 }
 
@@ -220,20 +251,23 @@ class Instruction {
     // 实际上枚举类型是可以拥有更加丰富的内容的
     // 参考：https://docs.oracle.com/javase/tutorial/java/javaOO/enum.html
     public enum Type {
-        NONE, COORDINATE, ERROR, CLICK, MARK, RESTART
+        NO_COMMAND, INVALID_COMMAND, NUMBER_EXPECTED, MARK_EXPECTED, COORDINATE, CLICK, MARK, RESTART, QUIT
     }
 
     private Type type;
+    private String mark;
+
     private int[] coordinate = new int[2];
     // 这是一个常 Map，包含了字符串对 Instruction.Type 的映射
     private static final Map<String, Type> instructions = Map.ofEntries(entry("CLICK", Type.CLICK),
-            entry("RESTART", Type.RESTART), entry("MARK", Type.MARK));
+            entry("MARK", Type.MARK), entry("RESTART", Type.RESTART), entry("QUIT", Type.QUIT));
 
     public Instruction() {
-        type = Type.NONE;
+        type = Type.NO_COMMAND;
     }
 
     // 不应当有默认 System.out.in 的打开再读取
+    // 否则将会无法进行持续读取
     public void read(Scanner scan) {
         String[] instruction;
 
@@ -244,31 +278,47 @@ class Instruction {
             if (instructions.containsKey(insKey)) {
                 type = instructions.get(insKey);
                 switch (type) {
+                    // TODO 需要优化为异常处理
                     case CLICK:
-                        type = getClick(instruction);
+                        type = readCoordinate(instruction);
+                        return;
+                    case MARK:
+                        type = readCoordinate(instruction);
+                        type = readMark(instruction);
                         return;
                     default:
-                        type = Type.ERROR;
+                        type = Type.INVALID_COMMAND;
                         return;
                 }
             }
         } else {
-            type = Type.NONE;
+            type = Type.NO_COMMAND;
             return;
         }
     }
 
-    private Type getClick(String[] instruction) {
+    private Type readCoordinate(String[] instruction) {
         if (instruction.length < 3) {
-            return Type.ERROR;
+            return Type.NUMBER_EXPECTED;
         }
         try {
-            coordinate[0] = Integer.parseInt(instruction[1]);
-            coordinate[1] = Integer.parseInt(instruction[2]);
+            // 坐标需要更换顺序，以符合 X 轴、 Y 轴
+            coordinate[0] = Integer.parseInt(instruction[2]);
+            coordinate[1] = Integer.parseInt(instruction[1]);
         } catch (NumberFormatException e) {
-            return Type.ERROR;
+            return Type.NUMBER_EXPECTED;
         }
-        return Type.CLICK;
+        // TODO 需要优化代码逻辑
+        // 这里已经在 read() 方法中判断过 instruction[0] 是包含在 instructions 中的
+        return instructions.get(instruction[0]);
+    }
+
+    private Type readMark(String[] instruction) {
+        if (instruction.length < 4) {
+            return Type.MARK_EXPECTED;
+        }
+        mark = instruction[3];
+        return Type.MARK;
     }
 
     public int[] getCoordinate() {
@@ -278,37 +328,49 @@ class Instruction {
     public Type getType() {
         return type;
     }
+
+    public String getMark() {
+        return mark;
+    }
 }
 
 public class JavaMineSweeper {
     static MineGrid mineGrid;
 
-    static int game(Scanner scan) {
+    static void game(Scanner scan) {
         Instruction ins = new Instruction();
+        Instruction.Type insType;
+        int[] coordinate;
 
-        while (true) {
+        while (!mineGrid.isOver()) {
+            System.out.print(mineGrid.toString());
+
             ins.read(scan);
-            switch (ins.getType()) {
-                case CLICK:
-                    int[] coordinate = ins.getCoordinate();
-                    boolean isAlive = mineGrid.clickGrid(coordinate[1], coordinate[0]);
+            insType = ins.getType();
 
-                    if (!isAlive) {
-                        System.out.println("Game Over");
-                        return 1;
-                    }
-                    break;
-                case NONE:
-                    return 1;
-                default:
-                    System.out.println("ERROR");
+            // 这里不用 switch，以方便 break
+            if (insType == Instruction.Type.CLICK) {
+                int clickX, clickY;
+                coordinate = ins.getCoordinate();
+                clickX = coordinate[0];
+                clickY = coordinate[1];
+                mineGrid.clickGrid(clickX, clickY);
+            } else if (insType == Instruction.Type.MARK) {
+                int markX, markY;
+                String mark;
+                coordinate = ins.getCoordinate();
+                markX = coordinate[0];
+                markY = coordinate[1];
+                mark = ins.getMark();
+                mineGrid.markGrid(markX, markY, mark);
             }
+
             if (mineGrid.isWin()) {
                 System.out.println("You Win");
-                return 1;
+                return;
             }
-            System.out.print(mineGrid.toString());
         }
+        return;
     }
 
     public static void main(String[] args) {
